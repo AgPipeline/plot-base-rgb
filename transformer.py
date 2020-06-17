@@ -8,8 +8,8 @@ import os
 import random
 import time
 from typing import Optional
-import osr
 import numpy as np
+import osr
 
 import gdal
 from osgeo import ogr
