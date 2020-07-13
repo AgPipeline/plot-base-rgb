@@ -1,4 +1,4 @@
-FROM agdrone/drone-base-image:1.2
+FROM agdrone/agpypeline:1.0
 LABEL maintainer="Chris Schnaufer <schnaufer@email.arizona.edu>"
 
 COPY requirements.txt packages.txt /home/extractor/
@@ -25,6 +25,9 @@ RUN [ -s /home/extractor/requirements.txt ] && \
     (echo "No python modules to install" && \
     rm /home/extractor/requirements.txt)
 
-USER extractor
 
 COPY *.py /home/extractor/
+RUN chmod a+x /home/extractor/transformer.py
+
+USER extractor
+ENTRYPOINT  ["/home/extractor/transformer.py"]
