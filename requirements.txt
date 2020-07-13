@@ -1,2 +1,2 @@
 liblas
-agpypeline
+agpypeline==0.0.20

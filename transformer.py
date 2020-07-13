@@ -10,13 +10,13 @@ import random
 import time
 from typing import Optional, Union
 import numpy as np
-from agpypeline import algorithm, entrypoint, geometries, geoimage, lasfile
+from agpypeline import algorithm, entrypoint
 from agpypeline.environment import Environment
 import osr
 import gdal
 from osgeo import ogr
 
-from configuration import ConfigurationRGBBase
+from configuration import ConfigurationRgbBase
 import algorithm_rgb
 
 # Known image file extensions
@@ -449,7 +449,7 @@ class __internal__:
         return BETYDB_TRAIT_NAMES + list(variable_names)
 
     @staticmethod
-    def get_default_trait(trait_name:str ) -> Union[list, str]:
+    def get_default_trait(trait_name: str) -> Union[list, str]:
         """Returns the default value for the trait name
         Args:
            trait_name(str): the name of the trait to return the default value for
@@ -698,7 +698,7 @@ class __internal__:
         __internal__.write_csv_file(filename, header, csv_data)
 
 
-class RGBPlotBase(algorithm.Algorithm):
+class RgbPlotBase(algorithm.Algorithm):
     """Used  as base for simplified RGB transformers"""
 
     def add_parameters(self, parser: argparse.ArgumentParser) -> None:
@@ -737,7 +737,7 @@ class RGBPlotBase(algorithm.Algorithm):
             Returns a list containing the return code for continuing or not, and
             an error message if there's an error
         """
-        # pylint: disable=unused-argument
+        # pylint: disable=unused-argument,no-self-use
         # Look for at least one image file in the list provided
         found_image = False
         for one_file in check_md['list_files']():
@@ -914,5 +914,5 @@ class RGBPlotBase(algorithm.Algorithm):
 
 
 if __name__ == "__main__":
-    CONFIGURATION = ConfigurationRGBBase()
-    entrypoint.entrypoint(CONFIGURATION, RGBPlotBase())
+    CONFIGURATION = ConfigurationRgbBase()
+    entrypoint.entrypoint(CONFIGURATION, RgbPlotBase())

@@ -3,7 +3,7 @@
 from agpypeline.configuration import Configuration
 
 
-class ConfigurationRGBBase(Configuration):
+class ConfigurationRgbBase(Configuration):
     """Configuration for RGB Plot base transformer template"""
     # Silence this error until we have public methods
     # pylint: disable=too-few-public-methods
