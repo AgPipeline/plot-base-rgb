@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Base of plot-level RGB transformer
 """
 import argparse
@@ -7,15 +8,19 @@ import math
 import os
 import random
 import time
-from typing import Optional
-import osr
+from typing import Optional, Union
 import numpy as np
-
+from agpypeline import algorithm, entrypoint
+from agpypeline.environment import Environment
+import osr
 import gdal
 from osgeo import ogr
 
-import transformer_class
+from configuration import ConfigurationRgbBase
 import algorithm_rgb
+
+# Known image file extensions
+KNOWN_IMAGE_FILE_EXTS = ['.tif', '.tiff', '.jpg']
 
 # Number of tries to open a CSV file before we give up
 MAX_CSV_FILE_OPEN_TRIES = 10
@@ -55,7 +60,8 @@ FILE_NAME_CSV = "rgb_plot.csv"
 FILE_NAME_GEO_CSV = "rgb_plot_geo.csv"
 FILE_NAME_BETYDB_CSV = "rgb_plot_betydb.csv"
 
-class __internal__():
+
+class __internal__:
     """Class containing functions for this file only
     """
     # pylint: disable=too-many-public-methods
@@ -229,7 +235,7 @@ class __internal__():
         return [np.nan, np.nan, np.nan, np.nan]
 
     @staticmethod
-    def get_epsg(filename):
+    def get_epsg(filename: str) -> Optional[str]:
         """Returns the EPSG of the geo-referenced image file
         Args:
             filename(str): path of the file to retrieve the EPSG code from
@@ -249,7 +255,7 @@ class __internal__():
         return None
 
     @staticmethod
-    def get_centroid_latlon(filename: str):
+    def get_centroid_latlon(filename: str) -> ogr.Geometry:
         """Returns the centroid of the geo-referenced image file as an OGR point
         Arguments:
             filename: the path to the file to get the centroid from
@@ -357,15 +363,15 @@ class __internal__():
         return sleep
 
     @staticmethod
-    def write_csv_file(filename, header, data):
+    def write_csv_file(filename: str, header: str, data: str) -> bool:
         """Attempts to write out the data to the specified file. Will write the
            header information if it's the first call to write to the file.
            If the file is not available, it waits as configured until it becomes
            available, or returns an error.
            Args:
-                filename(str): path to the file to write to
-                header(str): Optional CSV formatted header to write to the file; can be set to None
-                data(str): CSV formatted data to write to the file
+                filename: path to the file to write to
+                header: Optional CSV formatted header to write to the file; can be set to None
+                data: CSV formatted data to write to the file
             Return:
                 Returns True if the file was written to and False otherwise
         """
@@ -443,7 +449,7 @@ class __internal__():
         return BETYDB_TRAIT_NAMES + list(variable_names)
 
     @staticmethod
-    def get_default_trait(trait_name):
+    def get_default_trait(trait_name: str) -> Union[list, str]:
         """Returns the default value for the trait name
         Args:
            trait_name(str): the name of the trait to return the default value for
@@ -520,7 +526,7 @@ class __internal__():
         return (fields, traits)
 
     @staticmethod
-    def get_geo_traits_table():
+    def get_geo_traits_table() -> tuple:
         """Returns the field names and default trait values
         Returns:
             A tuple containing the list of field names and a dictionary of default field values
@@ -558,11 +564,11 @@ class __internal__():
         return (fields, traits)
 
     @staticmethod
-    def generate_traits_list(fields, traits):
+    def generate_traits_list(fields: list, traits: dict) -> list:
         """Returns an array of trait values
         Args:
-            fields(list): the list of fields to look up and return
-            traits(dict): contains the set of trait values to return
+            fields: the list of fields to look up and return
+            traits: contains the set of trait values to return
         Return:
             Returns an array of trait values taken from the traits parameter
         Notes:
@@ -591,7 +597,7 @@ class __internal__():
 
         # Skip files we don't know about
         for one_file in source_files:
-            ext = os.path.splitext(one_file)[1].strip('.')
+            ext = os.path.splitext(one_file)[1]
             if ext in known_exts:
                 return_list.append(one_file)
 
@@ -667,6 +673,8 @@ class __internal__():
                     values.append(values_result[key])
         elif not isinstance(values_result, (list, tuple)):
             values = [values_result]
+        else:
+            values = values_result
 
         # Sanity check our values
         len_calc_value = len(values)
@@ -690,214 +698,221 @@ class __internal__():
         __internal__.write_csv_file(filename, header, csv_data)
 
 
-def add_parameters(parser: argparse.ArgumentParser) -> None:
-    """Adds parameters
-    Arguments:
-        parser: instance of argparse
-    """
-    supported_files = [FILE_NAME_CSV + ': basic CSV file with calculated values']
-    if __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True):
-        supported_files.append(FILE_NAME_BETYDB_CSV + ': TERRA REF Geostreams compatible CSV file')
-    if __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True):
-        supported_files.append(FILE_NAME_BETYDB_CSV + ': BETYdb compatible CSV file')
+class RgbPlotBase(algorithm.Algorithm):
+    """Used  as base for simplified RGB transformers"""
 
-    parser.description = 'Plot level RGB algorithm: ' + __internal__.get_algorithm_name() + \
-                         ' version ' + __internal__.get_algorithm_definition_str('VERSION', 'x.y')
+    def add_parameters(self, parser: argparse.ArgumentParser) -> None:
+        """Adds parameters
+        Arguments:
+            parser: instance of argparse
+        """
+        # pylint: disable=no-self-use
+        supported_files = [FILE_NAME_CSV + ': basic CSV file with calculated values']
+        if __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True):
+            supported_files.append(FILE_NAME_BETYDB_CSV + ': TERRA REF Geostreams compatible CSV file')
+        if __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True):
+            supported_files.append(FILE_NAME_BETYDB_CSV + ': BETYdb compatible CSV file')
 
-    parser.add_argument('--csv_path', help='the path to use when generating the CSV files')
-    parser.add_argument('--geostreams_csv', action='store_true',
-                        help='override to always create the TERRA REF Geostreams-compatible CSV file')
-    parser.add_argument('--betydb_csv', action='store_true', help='override to always create the BETYdb-compatible CSV file')
+        parser.description = 'Plot level RGB algorithm: ' + __internal__.get_algorithm_name() + \
+                             ' version ' + __internal__.get_algorithm_definition_str('VERSION', 'x.y')
 
-    parser.epilog = 'The following files are created in the specified csv path by default: ' + \
-                    '\n  ' + '\n  '.join(supported_files) + '\n' + \
-                    ' author ' + __internal__.get_algorithm_definition_str('ALGORITHM_AUTHOR', 'mystery author') + \
-                    ' ' + __internal__.get_algorithm_definition_str('ALGORITHM_AUTHOR_EMAIL', '(no email)')
+        parser.add_argument('--csv_path', help='the path to use when generating the CSV files')
+        parser.add_argument('--geostreams_csv', action='store_true',
+                            help='override to always create the TERRA REF Geostreams-compatible CSV file')
+        parser.add_argument('--betydb_csv', action='store_true', help='override to always create the BETYdb-compatible CSV file')
 
+        parser.epilog = 'The following files are created in the specified csv path by default: ' + \
+                        '\n  ' + '\n  '.join(supported_files) + '\n' + \
+                        ' author ' + __internal__.get_algorithm_definition_str('ALGORITHM_AUTHOR', 'mystery author') + \
+                        ' ' + __internal__.get_algorithm_definition_str('ALGORITHM_AUTHOR_EMAIL', '(no email)')
 
-def check_continue(transformer: transformer_class.Transformer, check_md: dict, transformer_md: list, full_md: list) -> tuple:
-    """Checks if conditions are right for continuing processing
-    Arguments:
-        transformer: instance of transformer class
-        check_md: request specific metadata
-        transformer_md: metadata associated with previous runs of the transformer
-        full_md: the full set of metadata available to the transformer
-    Return:
-        Returns a list containing the return code for continuing or not, and
-        an error message if there's an error
-    """
-    # pylint: disable=unused-argument
-    # Look for at least one image file in the list provided
-    found_image = False
-    for one_file in check_md['list_files']():
-        ext = os.path.splitext(one_file)[1].strip('.')
-        if ext in transformer.supported_image_file_exts:
-            found_image = True
-            break
+    def check_continue(self, environment: Environment, check_md: dict, transformer_md: dict, full_md: list) -> tuple:
+        """Checks if conditions are right for continuing processing
+        Arguments:
+            environment: instance of environment class
+            check_md: request specific metadata
+            transformer_md: metadata associated with previous runs of the transformer
+            full_md: the full set of metadata available to the transformer
+        Return:
+            Returns a list containing the return code for continuing or not, and
+            an error message if there's an error
+        """
+        # pylint: disable=unused-argument,no-self-use
+        # Look for at least one image file in the list provided
+        found_image = False
+        for one_file in check_md['list_files']():
+            ext = os.path.splitext(one_file)[1]
+            if ext in KNOWN_IMAGE_FILE_EXTS:
+                found_image = True
+                break
 
-    if not found_image:
-        logging.debug("Image not found in list of files. Supported types are: %s", ", ".join(transformer.supported_image_file_exts))
+        if not found_image:
+            logging.debug("Image not found in list of files. Supported types are: %s", ", ".join(KNOWN_IMAGE_FILE_EXTS))
 
-    return (0) if found_image else (-1000, "Unable to find an image in the list of files")
+        return (0) if found_image else (-1000, "Unable to find an image in the list of files")
 
+    def perform_process(self, environment: Environment, check_md: dict, transformer_md: dict, full_md: list) -> dict:
+        """Performs the processing of the data
+        Arguments:
+            environment: instance of environment class
+            check_md: request specific metadata
+            transformer_md: metadata associated with previous runs of the transformer
+            full_md: the full set of metadata available to the transformer
+        Return:
+            Returns a dictionary with the results of processing
+        """
+        # pylint: disable=unused-argument
+        # The following pylint disables are here because to satisfy them would make the code unreadable
+        # pylint: disable=too-many-statements, too-many-locals, too-many-branches
 
-def perform_process(transformer: transformer_class.Transformer, check_md: dict, transformer_md: list, full_md: list) -> dict:
-    """Performs the processing of the data
-    Arguments:
-        transformer: instance of transformer class
-        check_md: request specific metadata
-        transformer_md: metadata associated with previous runs of the transformer
-        full_md: the full set of metadata available to the transformer
-    Return:
-        Returns a dictionary with the results of processing
-    """
-    # pylint: disable=unused-argument
-    # The following pylint disables are here because to satisfy them would make the code unreadable
-    # pylint: disable=too-many-statements, too-many-locals, too-many-branches
+        # Environment checking
+        if not hasattr(algorithm_rgb, 'calculate'):
+            msg = "The 'calculate()' function was not found in algorithm_rgb.py"
+            logging.error(msg)
+            return {'code': -1001, 'error': msg}
 
-    # Environment checking
-    if not hasattr(algorithm_rgb, 'calculate'):
-        msg = "The 'calculate()' function was not found in algorithm_rgb.py"
-        logging.error(msg)
-        return {'code': -1001, 'error': msg}
+        logging.debug("Working with check_md: %s", str(check_md))
 
-    logging.debug("Working with check_md: %s", str(check_md))
+        # Setup local variables
+        variable_names = __internal__.get_algorithm_variable_list('VARIABLE_NAMES')
 
-    # Setup local variables
-    variable_names = __internal__.get_algorithm_variable_list('VARIABLE_NAMES')
+        csv_file, geostreams_csv_file, betydb_csv_file = __internal__.get_csv_file_names(
+            __internal__.determine_csv_path([environment.args.csv_path, check_md['working_folder']]))
+        logging.debug("Calculated default CSV path: %s", csv_file)
+        logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
+        logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
+        datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'])
+        cultivar = __internal__.find_metadata_value(full_md, ['germplasmName', 'cultivar'])
 
-    csv_file, geostreams_csv_file, betydb_csv_file = __internal__.get_csv_file_names(
-        __internal__.determine_csv_path([transformer.args.csv_path, check_md['working_folder']]))
-    logging.debug("Calculated default CSV path: %s", csv_file)
-    logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
-    logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
-    datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'])
-    cultivar = __internal__.find_metadata_value(full_md, ['germplasmName', 'cultivar'])
+        write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
+        write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
+        logging.info("Writing geostreams csv file: %s", "True" if write_geostreams_csv else "False")
+        logging.info("Writing BETYdb csv file: %s", "True" if write_betydb_csv else "False")
 
-    write_geostreams_csv = transformer.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
-    write_betydb_csv = transformer.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
-    logging.info("Writing geostreams csv file: %s", "True" if write_geostreams_csv else "False")
-    logging.info("Writing BETYdb csv file: %s", "True" if write_betydb_csv else "False")
+        # Get default values and adjust as needed
+        (csv_fields, csv_traits) = __internal__.get_csv_traits_table(variable_names)
+        csv_traits['germplasmName'] = cultivar
+        (geo_fields, geo_traits) = __internal__.get_geo_traits_table()
+        (bety_fields, bety_traits) = __internal__.get_bety_traits_table(variable_names)
+        bety_traits['species'] = cultivar
 
-    # Get default values and adjust as needed
-    (csv_fields, csv_traits) = __internal__.get_csv_traits_table(variable_names)
-    csv_traits['germplasmName'] = cultivar
-    (geo_fields, geo_traits) = __internal__.get_geo_traits_table()
-    (bety_fields, bety_traits) = __internal__.get_bety_traits_table(variable_names)
-    bety_traits['species'] = cultivar
+        csv_header = ','.join(map(str, __internal__.get_csv_header_fields()))
+        geo_csv_header = ','.join(map(str, geo_fields))
+        bety_csv_header = ','.join(map(str, bety_fields))
 
-    csv_header = ','.join(map(str, __internal__.get_csv_header_fields()))
-    geo_csv_header = ','.join(map(str, geo_fields))
-    bety_csv_header = ','.join(map(str, bety_fields))
+        # Process the image files
+        num_image_files = 0
+        entries_written = 0
+        additional_files_list = []
+        for one_file in __internal__.filter_file_list_by_ext(check_md['list_files'](), KNOWN_IMAGE_FILE_EXTS):
 
-    # Process the image files
-    num_image_files = 0
-    entries_written = 0
-    additional_files_list = []
-    for one_file in __internal__.filter_file_list_by_ext(check_md['list_files'](), transformer.supported_image_file_exts):
+            plot_name = None
+            try:
+                num_image_files += 1
 
-        plot_name = None
-        try:
-            num_image_files += 1
+                # Setup
+                plot_name = __internal__.recursive_metadata_search(full_md, 'plot_name', one_file)
+                centroid = __internal__.get_centroid_latlon(one_file)
+                image_pix = np.array(gdal.Open(one_file).ReadAsArray())
 
-            # Setup
-            plot_name = __internal__.recursive_metadata_search(full_md, 'plot_name', one_file)
-            centroid = __internal__.get_centroid_latlon(one_file)
-            image_pix = np.array(gdal.Open(one_file).ReadAsArray())
+                # Make the call and check the results
+                calc_value = algorithm_rgb.calculate(image_pix)
+                logging.debug("Calculated value is %s for file: %s", str(calc_value), one_file)
+                if calc_value is None:
+                    continue
 
-            # Make the call and check the results
-            calc_value = algorithm_rgb.calculate(image_pix)
-            logging.debug("Calculated value is %s for file: %s", str(calc_value), one_file)
-            if calc_value is None:
+                if isinstance(calc_value, dict) and 'file' in calc_value and calc_value['file']:
+                    additional_files_list.extend(calc_value['file'])
+
+                values = __internal__.validate_calc_value(calc_value, variable_names)
+                logging.debug("Verified values are %s", str(values))
+
+                geo_traits['site'] = plot_name
+                geo_traits['lat'] = str(centroid.GetY())
+                geo_traits['lon'] = str(centroid.GetX())
+                geo_traits['dp_time'] = localtime
+                geo_traits['source'] = one_file
+                geo_traits['timestamp'] = datestamp
+
+                # Write the data points geographically and otherwise
+                for idx, trait_name in enumerate(variable_names):
+                    # Geostreams can only handle one field at a time so we write out one row per field/value pair
+                    geo_traits['trait'] = trait_name
+                    geo_traits['value'] = str(values[idx])
+                    if write_geostreams_csv:
+                        __internal__.write_trait_csv(geostreams_csv_file, geo_csv_header, geo_fields, geo_traits)
+
+                    # csv and BETYdb can handle wide rows with multiple values so we just set the field
+                    # values here and write the single row after the loop
+                    csv_traits[variable_names[idx]] = str(values[idx])
+                    bety_traits[variable_names[idx]] = str(values[idx])
+
+                csv_traits['site'] = plot_name
+                csv_traits['timestamp'] = datestamp
+                csv_traits['lat'] = str(centroid.GetY())
+                csv_traits['lon'] = str(centroid.GetX())
+                __internal__.write_trait_csv(csv_file, csv_header, csv_fields, csv_traits)
+
+                bety_traits['site'] = plot_name
+                bety_traits['local_datetime'] = localtime
+                if write_betydb_csv:
+                    __internal__.write_trait_csv(betydb_csv_file, bety_csv_header, bety_fields, bety_traits)
+
+                entries_written += 1
+
+            except Exception as ex:
+                logging.error("Error generating %s for %s", __internal__.get_algorithm_name(), str(plot_name))
+                logging.error("Exception: %s", str(ex))
                 continue
 
-            if isinstance(calc_value, dict) and 'file' in calc_value and calc_value['file']:
-                additional_files_list.extend(calc_value['file'])
+        if num_image_files == 0:
+            logging.warning("No images were detected for processing")
+        if entries_written == 0:
+            logging.warning("No entries were written to CSV files")
 
-            values = __internal__.validate_calc_value(calc_value, variable_names)
-            logging.debug("Verified values are %s", str(values))
-
-            geo_traits['site'] = plot_name
-            geo_traits['lat'] = str(centroid.GetY())
-            geo_traits['lon'] = str(centroid.GetX())
-            geo_traits['dp_time'] = localtime
-            geo_traits['source'] = one_file
-            geo_traits['timestamp'] = datestamp
-
-            # Write the data points geographically and otherwise
-            for idx, trait_name in enumerate(variable_names):
-                # Geostreams can only handle one field at a time so we write out one row per field/value pair
-                geo_traits['trait'] = trait_name
-                geo_traits['value'] = str(values[idx])
-                if write_geostreams_csv:
-                    __internal__.write_trait_csv(geostreams_csv_file, geo_csv_header, geo_fields, geo_traits)
-
-                # csv and BETYdb can handle wide rows with multiple values so we just set the field
-                # values here and write the single row after the loop
-                csv_traits[variable_names[idx]] = str(values[idx])
-                bety_traits[variable_names[idx]] = str(values[idx])
-
-            csv_traits['site'] = plot_name
-            csv_traits['timestamp'] = datestamp
-            csv_traits['lat'] = str(centroid.GetY())
-            csv_traits['lon'] = str(centroid.GetX())
-            __internal__.write_trait_csv(csv_file, csv_header, csv_fields, csv_traits)
-
-            bety_traits['site'] = plot_name
-            bety_traits['local_datetime'] = localtime
-            if write_betydb_csv:
-                __internal__.write_trait_csv(betydb_csv_file, bety_csv_header, bety_fields, bety_traits)
-
-            entries_written += 1
-
-        except Exception as ex:
-            logging.error("Error generating %s for %s", __internal__.get_algorithm_name(), str(plot_name))
-            logging.error("Exception: %s", str(ex))
-            continue
-
-    if num_image_files == 0:
-        logging.warning("No images were detected for processing")
-    if entries_written == 0:
-        logging.warning("No entries were written to CSV files")
-
-    # Prepare the return information
-    algorithm_name, algorithm_md = __internal__.prepare_algorithm_metadata()
-    algorithm_md['files_processed'] = str(num_image_files)
-    algorithm_md['lines_written'] = str(entries_written)
-    if write_geostreams_csv:
-        algorithm_md['wrote_geostreams'] = "Yes"
-    if write_betydb_csv:
-        algorithm_md['wrote_betydb'] = "Yes"
-
-    file_md = []
-    if entries_written:
-        file_md.append({
-            'path': csv_file,
-            'key': 'csv'
-        })
+        # Prepare the return information
+        algorithm_name, algorithm_md = __internal__.prepare_algorithm_metadata()
+        algorithm_md['files_processed'] = str(num_image_files)
+        algorithm_md['lines_written'] = str(entries_written)
         if write_geostreams_csv:
-            file_md.append({
-                'path': geostreams_csv_file,
-                'key': 'csv'
-            })
+            algorithm_md['wrote_geostreams'] = "Yes"
         if write_betydb_csv:
+            algorithm_md['wrote_betydb'] = "Yes"
+
+        file_md = []
+        if entries_written:
             file_md.append({
-                'path': betydb_csv_file,
+                'path': csv_file,
                 'key': 'csv'
             })
+            if write_geostreams_csv:
+                file_md.append({
+                    'path': geostreams_csv_file,
+                    'key': 'csv'
+                })
+            if write_betydb_csv:
+                file_md.append({
+                    'path': betydb_csv_file,
+                    'key': 'csv'
+                })
 
-    for one_file in additional_files_list:
-        file_path = str(one_file)
-        if not os.path.exists(file_path):
-            logging.warning("Additional return file not found to return: '%s'", file_path)
-            continue
-        logging.info("Adding additional file to results: '%s'", file_path)
-        file_md.append({
-            'path': file_path,
-            'key': os.path.splitext(file_path)[1].lstrip('.')
-        })
+        for one_file in additional_files_list:
+            file_path = str(one_file)
+            if not os.path.exists(file_path):
+                logging.warning("Additional return file not found to return: '%s'", file_path)
+                continue
+            logging.info("Adding additional file to results: '%s'", file_path)
+            file_md.append({
+                'path': file_path,
+                'key': os.path.splitext(file_path)[1].lstrip('.')
+            })
 
-    return {'code': 0,
-            'file': file_md,
-            algorithm_name: algorithm_md
-            }
+        return {'code': 0,
+                'file': file_md,
+                algorithm_name: algorithm_md
+                }
+
+
+if __name__ == "__main__":
+    CONFIGURATION = ConfigurationRgbBase()
+    entrypoint.entrypoint(CONFIGURATION, RgbPlotBase())
