@@ -44,7 +44,7 @@ TRAIT_NAME_MAP = {
 }
 
 # Trait names arrays
-CSV_TRAIT_NAMES = ['germplasmName', 'site', 'timestamp', 'lat', 'lon', 'citation_author', 'citation_year', 'citation_title']
+CSV_TRAIT_NAMES = ['species', 'site', 'timestamp', 'lat', 'lon', 'citation_author', 'citation_year', 'citation_title']
 GEO_TRAIT_NAMES = ['site', 'trait', 'lat', 'lon', 'dp_time', 'source', 'value', 'timestamp']
 BETYDB_TRAIT_NAMES = ['local_datetime', 'access_level', 'species', 'site', 'citation_author', 'citation_year', 'citation_title',
                       'method']
@@ -708,9 +708,9 @@ class RgbPlotBase(algorithm.Algorithm):
         """
         # pylint: disable=no-self-use
         supported_files = [FILE_NAME_CSV + ': basic CSV file with calculated values']
-        if __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True):
+        if __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', False):
             supported_files.append(FILE_NAME_BETYDB_CSV + ': TERRA REF Geostreams compatible CSV file')
-        if __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True):
+        if __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', False):
             supported_files.append(FILE_NAME_BETYDB_CSV + ': BETYdb compatible CSV file')
 
         parser.description = 'Plot level RGB algorithm: ' + __internal__.get_algorithm_name() + \
@@ -782,7 +782,7 @@ class RgbPlotBase(algorithm.Algorithm):
         logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
         logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
         datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'])
-        cultivar = __internal__.find_metadata_value(full_md, ['germplasmName', 'cultivar'])
+        species = __internal__.find_metadata_value(full_md, ['species', 'cultivar'])
 
         write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
         write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
@@ -791,10 +791,10 @@ class RgbPlotBase(algorithm.Algorithm):
 
         # Get default values and adjust as needed
         (csv_fields, csv_traits) = __internal__.get_csv_traits_table(variable_names)
-        csv_traits['germplasmName'] = cultivar
+        csv_traits['species'] = species
         (geo_fields, geo_traits) = __internal__.get_geo_traits_table()
         (bety_fields, bety_traits) = __internal__.get_bety_traits_table(variable_names)
-        bety_traits['species'] = cultivar
+        bety_traits['species'] = species
 
         csv_header = ','.join(map(str, __internal__.get_csv_header_fields()))
         geo_csv_header = ','.join(map(str, geo_fields))
