@@ -517,13 +517,13 @@ class __internal__:
             traits[field_name] = __internal__.get_default_trait(field_name)
 
         if hasattr(algorithm_rgb, 'CITATION_AUTHOR') and getattr(algorithm_rgb, 'CITATION_AUTHOR'):
-            traits['citation_author'] = getattr(algorithm_rgb, 'CITATION_AUTHOR')
+            traits['citation_author'] = '"' + getattr(algorithm_rgb, 'CITATION_AUTHOR') + '"'
         if hasattr(algorithm_rgb, 'CITATION_TITLE') and getattr(algorithm_rgb, 'CITATION_TITLE'):
-            traits['citation_title'] = getattr(algorithm_rgb, 'CITATION_TITLE')
+            traits['citation_title'] = '"' + getattr(algorithm_rgb, 'CITATION_TITLE') + '"'
         if hasattr(algorithm_rgb, 'CITATION_YEAR') and getattr(algorithm_rgb, 'CITATION_YEAR'):
-            traits['citation_year'] = getattr(algorithm_rgb, 'CITATION_YEAR')
+            traits['citation_year'] = '"' + getattr(algorithm_rgb, 'CITATION_YEAR') + '"'
 
-        return (fields, traits)
+        return fields, traits
 
     @staticmethod
     def get_geo_traits_table() -> tuple:
@@ -536,7 +536,7 @@ class __internal__:
         for field_name in fields:
             traits[field_name] = ""
 
-        return (fields, traits)
+        return fields, traits
 
     @staticmethod
     def get_bety_traits_table(variable_names: list) -> tuple:
@@ -553,15 +553,15 @@ class __internal__:
             traits[field_name] = __internal__.get_default_trait(field_name)
 
         if hasattr(algorithm_rgb, 'CITATION_AUTHOR') and getattr(algorithm_rgb, 'CITATION_AUTHOR'):
-            traits['citation_author'] = getattr(algorithm_rgb, 'CITATION_AUTHOR')
+            traits['citation_author'] = '"' + getattr(algorithm_rgb, 'CITATION_AUTHOR') + '"'
         if hasattr(algorithm_rgb, 'CITATION_TITLE') and getattr(algorithm_rgb, 'CITATION_TITLE'):
-            traits['citation_title'] = getattr(algorithm_rgb, 'CITATION_TITLE')
+            traits['citation_title'] = '"' + getattr(algorithm_rgb, 'CITATION_TITLE') + '"'
         if hasattr(algorithm_rgb, 'CITATION_YEAR') and getattr(algorithm_rgb, 'CITATION_YEAR'):
-            traits['citation_year'] = getattr(algorithm_rgb, 'CITATION_YEAR')
+            traits['citation_year'] = '"' + getattr(algorithm_rgb, 'CITATION_YEAR') + '"'
         if hasattr(algorithm_rgb, 'ALGORITHM_METHOD') and getattr(algorithm_rgb, 'ALGORITHM_METHOD'):
-            traits['method'] = getattr(algorithm_rgb, 'ALGORITHM_METHOD')
+            traits['method'] = '"' + getattr(algorithm_rgb, 'ALGORITHM_METHOD') + '"'
 
-        return (fields, traits)
+        return fields, traits
 
     @staticmethod
     def generate_traits_list(fields: list, traits: dict) -> list:
