@@ -813,7 +813,7 @@ class RgbPlotBase(algorithm.Algorithm):
                 # Setup
                 plot_name = __internal__.recursive_metadata_search(full_md, 'plot_name', one_file)
                 centroid = __internal__.get_centroid_latlon(one_file)
-                image_pix = np.array(gdal.Open(one_file).ReadAsArray())
+                image_pix = np.rollaxis(np.array(gdal.Open(one_file).ReadAsArray()), 0, 3)
 
                 # Make the call and check the results
                 calc_value = algorithm_rgb.calculate(image_pix)
