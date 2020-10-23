@@ -12,9 +12,7 @@ from typing import Optional, Union
 import numpy as np
 from agpypeline import algorithm, entrypoint
 from agpypeline.environment import Environment
-import osr
-import gdal
-from osgeo import ogr
+from osgeo import gdal, ogr, osr
 
 from configuration import ConfigurationRgbBase
 import algorithm_rgb
