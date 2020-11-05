@@ -320,9 +320,11 @@ class __internal__:
         Return:
             A list consisting of the date (YYYY-MM-DD) and a local timestamp (YYYY-MM-DDTHH:MM:SS)
         """
-        timestamp = datetime.datetime.fromisoformat(iso_timestamp)
+        if len(iso_timestamp) > 0:
+            timestamp = datetime.datetime.fromisoformat(iso_timestamp)
+            return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
 
-        return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
+        return ['', '']
 
     @staticmethod
     def get_open_backoff(prev: float = None) -> float:
