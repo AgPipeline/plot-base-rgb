@@ -10,7 +10,7 @@ import random
 import time
 from typing import Optional, Union
 import numpy as np
-from agpypeline import algorithm, entrypoint
+from agpypeline import algorithm, entrypoint, geoimage
 from agpypeline.environment import Environment
 from osgeo import gdal, ogr, osr
 
@@ -251,65 +251,6 @@ class __internal__:
             logging.warning("[get_epsg] Exception: %s", str(ex))
 
         return None
-
-    @staticmethod
-    def get_centroid_latlon(filename: str) -> ogr.Geometry:
-        """Returns the centroid of the geo-referenced image file as an OGR point
-        Arguments:
-            filename: the path to the file to get the centroid from
-        Returns:
-            Returns the centroid of the geometry loaded from the file in lat-lon coordinates
-        Exceptions:
-            RuntimeError is raised if the image is not a geo referenced image with an EPSG code,
-            the EPSG code is not supported, or another problems occurs
-        """
-        bounds = __internal__.image_get_geobounds(filename)
-        if bounds[0] == np.nan:
-            msg = "File is not a geo-referenced image file: %s" % filename
-            logging.error(msg)
-            raise RuntimeError(msg)
-
-        epsg = __internal__.get_epsg(filename)
-        if epsg is None:
-            msg = "EPSG is not found in image file: '%s'" % filename
-            logging.error(msg)
-            raise RuntimeError(msg)
-
-        ring = ogr.Geometry(ogr.wkbLinearRing)
-        ring.AddPoint(bounds[2], bounds[1])  # Upper left
-        ring.AddPoint(bounds[3], bounds[1])  # Upper right
-        ring.AddPoint(bounds[3], bounds[0])  # lower right
-        ring.AddPoint(bounds[2], bounds[0])  # lower left
-        ring.AddPoint(bounds[2], bounds[1])  # Closing the polygon
-
-        poly = ogr.Geometry(ogr.wkbPolygon)
-        poly.AddGeometry(ring)
-
-        ref_sys = osr.SpatialReference()
-        if ref_sys.ImportFromEPSG(int(epsg)) == ogr.OGRERR_NONE:
-            poly.AssignSpatialReference(ref_sys)
-        else:
-            msg = "Failed to import EPSG %s for image file %s" % (str(epsg), filename)
-            logging.error(msg)
-            raise RuntimeError(msg)
-
-        # Convert the polygon to lat-lon
-        dest_spatial = osr.SpatialReference()
-        if dest_spatial.ImportFromEPSG(int(LAT_LON_EPSG_CODE)) != ogr.OGRERR_NONE:
-            msg = "Failed to import EPSG %s for conversion to lat-lon" % str(LAT_LON_EPSG_CODE)
-            logging.error(msg)
-            raise RuntimeError(msg)
-
-        transform = osr.CoordinateTransformation(ref_sys, dest_spatial)
-        new_src = poly.Clone()
-        if new_src:
-            new_src.Transform(transform)
-        else:
-            msg = "Failed to transform file polygon to lat-lon" % filename
-            logging.error(msg)
-            raise RuntimeError(msg)
-
-        return new_src.Centroid()
 
     @staticmethod
     def get_time_stamps(iso_timestamp: str) -> list:
@@ -810,7 +751,7 @@ class RgbPlotBase(algorithm.Algorithm):
 
                 # Setup
                 plot_name = __internal__.recursive_metadata_search(full_md, 'plot_name', one_file)
-                centroid = __internal__.get_centroid_latlon(one_file)
+                centroid = geoimage.get_centroid_latlon(one_file)
                 image_pix = np.rollaxis(np.array(gdal.Open(one_file).ReadAsArray()), 0, 3)
 
                 # Make the call and check the results
