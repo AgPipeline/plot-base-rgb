@@ -845,7 +845,7 @@ class RgbPlotBase(algorithm.Algorithm):
                 num_image_files += 1
 
                 # Setup
-                plot_name = __internal__.recursive_metadata_search(full_md, 'plot_name', one_file)
+                plot_name = os.path.basename(os.path.dirname(one_file))
                 centroid = __internal__.get_centroid_latlon(one_file)
                 image_pix = np.rollaxis(np.array(gdal.Open(one_file).ReadAsArray()), 0, 3)
 
