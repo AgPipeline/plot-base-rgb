@@ -5,6 +5,7 @@ import argparse
 import datetime
 import logging
 import math
+import numbers
 import os
 import random
 import time
@@ -58,6 +59,8 @@ FILE_NAME_CSV = "rgb_plot.csv"
 FILE_NAME_GEO_CSV = "rgb_plot_geo.csv"
 FILE_NAME_BETYDB_CSV = "rgb_plot_betydb.csv"
 
+# The number of significant digits to keep
+SIGNIFICANT_DIGITS = 3
 
 class __internal__:
     """Class containing functions for this file only
@@ -327,7 +330,7 @@ class __internal__:
         else:
             return ['', '']
 
-        return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
+          return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
 
     @staticmethod
     def get_open_backoff(prev: float = None) -> float:
@@ -846,6 +849,7 @@ class RgbPlotBase(algorithm.Algorithm):
         num_image_files = 0
         entries_written = 0
         additional_files_list = []
+        significant_digits_format = '.' + str(SIGNIFICANT_DIGITS) + 'g'
         for one_file in __internal__.filter_file_list_by_ext(check_md['list_files'](), KNOWN_IMAGE_FILE_EXTS):
 
             plot_name = None
@@ -878,16 +882,22 @@ class RgbPlotBase(algorithm.Algorithm):
 
                 # Write the data points geographically and otherwise
                 for idx, trait_name in enumerate(variable_names):
+                    # Get numbers truncated to significant digits
+                    if isinstance(values[idx], numbers.Number):
+                        value_str = format(values[idx], significant_digits_format)
+                    else:
+                        value_str = str(values[idx])
+
                     # Geostreams can only handle one field at a time so we write out one row per field/value pair
                     geo_traits['trait'] = trait_name
-                    geo_traits['value'] = str(values[idx])
+                    geo_traits['value'] = value_str
                     if write_geostreams_csv:
                         __internal__.write_trait_csv(geostreams_csv_file, geo_csv_header, geo_fields, geo_traits)
 
                     # csv and BETYdb can handle wide rows with multiple values so we just set the field
                     # values here and write the single row after the loop
-                    csv_traits[variable_names[idx]] = str(values[idx])
-                    bety_traits[variable_names[idx]] = str(values[idx])
+                    csv_traits[variable_names[idx]] = value_str
+                    bety_traits[variable_names[idx]] = value_str
 
                 csv_traits['site'] = plot_name
                 csv_traits['timestamp'] = datestamp
