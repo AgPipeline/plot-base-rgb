@@ -315,16 +315,22 @@ class __internal__:
         return new_src.Centroid()
 
     @staticmethod
-    def get_time_stamps(iso_timestamp: str) -> list:
+    def get_time_stamps(iso_timestamp: str, args: argparse.Namespace) -> list:
         """Returns the date and the local time (offset is stripped) derived from the passed in timestamp
+        Args:
+            iso_timestamp: the timestamp string
+            args: the command line parameters
         Return:
             A list consisting of the date (YYYY-MM-DD) and a local timestamp (YYYY-MM-DDTHH:MM:SS)
         """
-        if len(iso_timestamp) > 0:
+        if 'timestamp' in args and args.timestamp:
+            timestamp = datetime.datetime.fromisoformat(args.timestamp)
+        elif iso_timestamp:
             timestamp = datetime.datetime.fromisoformat(iso_timestamp)
-            return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
+        else:
+            return ['', '']
 
-        return ['', '']
+          return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
 
     @staticmethod
     def get_open_backoff(prev: float = None) -> float:
@@ -700,6 +706,44 @@ class __internal__:
         csv_data = ','.join(map(str, trait_list))
         __internal__.write_csv_file(filename, header, csv_data)
 
+    @staticmethod
+    def get_plot_species(plot_name: str, full_md: list) -> str:
+        """Attempts to find the plot name and return its associated species
+        Arguments:
+            plot_name: the name of the plot to find the species of
+            full_md: the full list of metadata
+        Returns:
+            Returns the found species or "Unknown" if the plot was not found
+        Notes:
+            Returns the first match found. If not found, the return value will be one of the following (in
+            priority order): the case-insensitive plot name match, the command line species argument, "Unknown"
+        """
+        possible = None
+        optional = None
+
+        # Disable pylint nested block depth check to avoid 2*N looping (save lower case possibility vs. 2 loops
+        # with one check in each)
+        # pylint: disable=too-many-nested-blocks
+        for one_md in full_md:
+            if 'species' in one_md:
+                optional = one_md['species']
+            if 'plots' in one_md:
+                for one_plot in one_md['plots']:
+                    # Try to find the plot name in 'plots' in a case sensitive way, followed by case insensitive
+                    if 'name' in one_plot:
+                        if str(one_plot['name']) == plot_name:
+                            if 'species' in one_plot:
+                                return one_plot['species']
+                        elif str(one_plot['name']).lower() == plot_name.lower():
+                            if 'species' in one_plot:
+                                possible = one_plot['species']
+
+        # Check if we found a possibility, but not an exact match
+        if possible is not None:
+            return possible
+
+        return optional if optional is not None else "Unknown"
+
 
 class RgbPlotBase(algorithm.Algorithm):
     """Used  as base for simplified RGB transformers"""
@@ -720,6 +764,7 @@ class RgbPlotBase(algorithm.Algorithm):
                              ' version ' + __internal__.get_algorithm_definition_str('VERSION', 'x.y')
 
         parser.add_argument('--csv_path', help='the path to use when generating the CSV files')
+        parser.add_argument('--timestamp', help='the timestamp to use in ISO 8601 format (eg:YYYY-MM-DDTHH:MM:SS')
         parser.add_argument('--geostreams_csv', action='store_true',
                             help='override to always create the TERRA REF Geostreams-compatible CSV file')
         parser.add_argument('--betydb_csv', action='store_true', help='override to always create the BETYdb-compatible CSV file')
@@ -784,8 +829,7 @@ class RgbPlotBase(algorithm.Algorithm):
         logging.debug("Calculated default CSV path: %s", csv_file)
         logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
         logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
-        datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'])
-        species = __internal__.find_metadata_value(full_md, ['species', 'cultivar'])
+        datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'], environment.args)
 
         write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
         write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
@@ -794,10 +838,8 @@ class RgbPlotBase(algorithm.Algorithm):
 
         # Get default values and adjust as needed
         (csv_fields, csv_traits) = __internal__.get_csv_traits_table(variable_names)
-        csv_traits['species'] = species
         (geo_fields, geo_traits) = __internal__.get_geo_traits_table()
         (bety_fields, bety_traits) = __internal__.get_bety_traits_table(variable_names)
-        bety_traits['species'] = species
 
         csv_header = ','.join(map(str, __internal__.get_csv_header_fields()))
         geo_csv_header = ','.join(map(str, geo_fields))
@@ -815,7 +857,7 @@ class RgbPlotBase(algorithm.Algorithm):
                 num_image_files += 1
 
                 # Setup
-                plot_name = __internal__.recursive_metadata_search(full_md, 'plot_name', one_file)
+                plot_name = os.path.basename(os.path.dirname(one_file))
                 centroid = __internal__.get_centroid_latlon(one_file)
                 image_pix = np.rollaxis(np.array(gdal.Open(one_file).ReadAsArray()), 0, 3)
 
@@ -861,10 +903,12 @@ class RgbPlotBase(algorithm.Algorithm):
                 csv_traits['timestamp'] = datestamp
                 csv_traits['lat'] = str(centroid.GetY())
                 csv_traits['lon'] = str(centroid.GetX())
+                csv_traits['species'] = __internal__.get_plot_species(plot_name, full_md)
                 __internal__.write_trait_csv(csv_file, csv_header, csv_fields, csv_traits)
 
                 bety_traits['site'] = plot_name
                 bety_traits['local_datetime'] = localtime
+                bety_traits['species'] = __internal__.get_plot_species(plot_name, full_md)
                 if write_betydb_csv:
                     __internal__.write_trait_csv(betydb_csv_file, bety_csv_header, bety_fields, bety_traits)
 
