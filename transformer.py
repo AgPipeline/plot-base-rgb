@@ -696,12 +696,11 @@ class __internal__:
         __internal__.write_csv_file(filename, header, csv_data)
 
     @staticmethod
-    def get_plot_species(plot_name: str, full_md: list, args: argparse.Namespace) -> str:
+    def get_plot_species(plot_name: str, full_md: list) -> str:
         """Attempts to find the plot name and return its associated species
         Arguments:
             plot_name: the name of the plot to find the species of
             full_md: the full list of metadata
-            args: the command line arguments which may have a species override
         Returns:
             Returns the found species or "Unknown" if the plot was not found
         Notes:
@@ -732,7 +731,7 @@ class __internal__:
         if possible is not None:
             return possible
 
-        return args.species if args.species is not None else optional if optional is not None else "Unknown"
+        return optional if optional is not None else "Unknown"
 
 
 class RgbPlotBase(algorithm.Algorithm):
@@ -885,12 +884,12 @@ class RgbPlotBase(algorithm.Algorithm):
                 csv_traits['timestamp'] = datestamp
                 csv_traits['lat'] = str(centroid.GetY())
                 csv_traits['lon'] = str(centroid.GetX())
-                csv_traits['species'] = __internal__.get_plot_species(plot_name, full_md, environment.args)
+                csv_traits['species'] = __internal__.get_plot_species(plot_name, full_md)
                 __internal__.write_trait_csv(csv_file, csv_header, csv_fields, csv_traits)
 
                 bety_traits['site'] = plot_name
                 bety_traits['local_datetime'] = localtime
-                bety_traits['species'] = __internal__.get_plot_species(plot_name, full_md, environment.args)
+                bety_traits['species'] = __internal__.get_plot_species(plot_name, full_md)
                 if write_betydb_csv:
                     __internal__.write_trait_csv(betydb_csv_file, bety_csv_header, bety_fields, bety_traits)
 
