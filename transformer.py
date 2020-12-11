@@ -330,7 +330,7 @@ class __internal__:
         else:
             return ['', '']
 
-          return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
+        return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
 
     @staticmethod
     def get_open_backoff(prev: float = None) -> float:
