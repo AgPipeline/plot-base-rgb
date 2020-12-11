@@ -695,6 +695,45 @@ class __internal__:
         csv_data = ','.join(map(str, trait_list))
         __internal__.write_csv_file(filename, header, csv_data)
 
+    @staticmethod
+    def get_plot_species(plot_name: str, full_md: list, args: argparse.Namespace) -> str:
+        """Attempts to find the plot name and return its associated species
+        Arguments:
+            plot_name: the name of the plot to find the species of
+            full_md: the full list of metadata
+            args: the command line arguments which may have a species override
+        Returns:
+            Returns the found species or "Unknown" if the plot was not found
+        Notes:
+            Returns the first match found. If not found, the return value will be one of the following (in
+            priority order): the case-insensitive plot name match, the command line species argument, "Unknown"
+        """
+        possible = None
+        optional = None
+
+        # Disable pylint nested block depth check to avoid 2*N looping (save lower case possibility vs. 2 loops
+        # with one check in each)
+        # pylint: disable=too-many-nested-blocks
+        for one_md in full_md:
+            if 'species' in one_md:
+                optional = one_md['species']
+            if 'plots' in one_md:
+                for one_plot in one_md['plots']:
+                    # Try to find the plot name in 'plots' in a case sensitive way, followed by case insensitive
+                    if 'name' in one_plot:
+                        if str(one_plot['name']) == plot_name:
+                            if 'species' in one_plot:
+                                return one_plot['species']
+                        elif str(one_plot['name']).lower() == plot_name.lower():
+                            if 'species' in one_plot:
+                                possible = one_plot['species']
+
+        # Check if we found a possibility, but not an exact match
+        if possible is not None:
+            return possible
+
+        return args.species if args.species is not None else optional if optional is not None else "Unknown"
+
 
 class RgbPlotBase(algorithm.Algorithm):
     """Used  as base for simplified RGB transformers"""
@@ -759,7 +798,7 @@ class RgbPlotBase(algorithm.Algorithm):
         Return:
             Returns a dictionary with the results of processing
         """
-        # pylint: disable=unused-argument
+        # pylint: disable=unused-argument, no-self-use
         # The following pylint disables are here because to satisfy them would make the code unreadable
         # pylint: disable=too-many-statements, too-many-locals, too-many-branches
 
@@ -780,7 +819,6 @@ class RgbPlotBase(algorithm.Algorithm):
         logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
         logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
         datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'])
-        species = __internal__.find_metadata_value(full_md, ['species', 'cultivar'])
 
         write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
         write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
@@ -789,10 +827,8 @@ class RgbPlotBase(algorithm.Algorithm):
 
         # Get default values and adjust as needed
         (csv_fields, csv_traits) = __internal__.get_csv_traits_table(variable_names)
-        csv_traits['species'] = species
         (geo_fields, geo_traits) = __internal__.get_geo_traits_table()
         (bety_fields, bety_traits) = __internal__.get_bety_traits_table(variable_names)
-        bety_traits['species'] = species
 
         csv_header = ','.join(map(str, __internal__.get_csv_header_fields()))
         geo_csv_header = ','.join(map(str, geo_fields))
@@ -849,10 +885,12 @@ class RgbPlotBase(algorithm.Algorithm):
                 csv_traits['timestamp'] = datestamp
                 csv_traits['lat'] = str(centroid.GetY())
                 csv_traits['lon'] = str(centroid.GetX())
+                csv_traits['species'] = __internal__.get_plot_species(plot_name, full_md, environment.args)
                 __internal__.write_trait_csv(csv_file, csv_header, csv_fields, csv_traits)
 
                 bety_traits['site'] = plot_name
                 bety_traits['local_datetime'] = localtime
+                bety_traits['species'] = __internal__.get_plot_species(plot_name, full_md, environment.args)
                 if write_betydb_csv:
                     __internal__.write_trait_csv(betydb_csv_file, bety_csv_header, bety_fields, bety_traits)
 
