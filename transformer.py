@@ -312,12 +312,20 @@ class __internal__:
         return new_src.Centroid()
 
     @staticmethod
-    def get_time_stamps(iso_timestamp: str) -> list:
+    def get_time_stamps(iso_timestamp: str, args: argparse.Namespace) -> list:
         """Returns the date and the local time (offset is stripped) derived from the passed in timestamp
+        Args:
+            iso_timestamp: the timestamp string
+            args: the command line parameters
         Return:
             A list consisting of the date (YYYY-MM-DD) and a local timestamp (YYYY-MM-DDTHH:MM:SS)
         """
-        timestamp = datetime.datetime.fromisoformat(iso_timestamp)
+        if 'timestamp' in args and args.timestamp:
+            timestamp = datetime.datetime.fromisoformat(args.timestamp)
+        elif iso_timestamp:
+            timestamp = datetime.datetime.fromisoformat(iso_timestamp)
+        else:
+            return "", ""
 
         return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
 
@@ -753,6 +761,7 @@ class RgbPlotBase(algorithm.Algorithm):
                              ' version ' + __internal__.get_algorithm_definition_str('VERSION', 'x.y')
 
         parser.add_argument('--csv_path', help='the path to use when generating the CSV files')
+        parser.add_argument('--timestamp', help='the timestamp to use in ISO 8601 format (eg:YYYY-MM-DDTHH:MM:SS')
         parser.add_argument('--geostreams_csv', action='store_true',
                             help='override to always create the TERRA REF Geostreams-compatible CSV file')
         parser.add_argument('--betydb_csv', action='store_true', help='override to always create the BETYdb-compatible CSV file')
@@ -817,7 +826,7 @@ class RgbPlotBase(algorithm.Algorithm):
         logging.debug("Calculated default CSV path: %s", csv_file)
         logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
         logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
-        datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'])
+        datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'], environment.args)
 
         write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
         write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
