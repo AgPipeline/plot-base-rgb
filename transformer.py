@@ -325,7 +325,7 @@ class __internal__:
         elif iso_timestamp:
             timestamp = datetime.datetime.fromisoformat(iso_timestamp)
         else:
-            return "", ""
+            return ['', '']
 
         return [timestamp.strftime('%Y-%m-%d'), timestamp.strftime('%Y-%m-%dT%H:%M:%S')]
 
