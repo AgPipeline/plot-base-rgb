@@ -1,3 +1,7 @@
+[![license](https://img.shields.io/badge/license-BSD%203-green?logo=Open-Source-Initiative)](https://github.com/AgPipeline/plot-base-rgb/blob/master/LICENSE)
+
+[![Enforcing testing](https://github.com/AgPipeline/plot-base-rgb/workflows/Enforcing%20pylint%20checks/badge.svg)](https://github.com/AgPipeline/plot-base-rgb/actions?query=workflow%3A%22Enforcing+pylint+checks%22)
+
 # Transformer: base RGB Plot-level
 <img src="https://github.com/az-digitalag/Drone-Processing-Pipeline/raw/07b1edc34a1faea501c80f583beb07f9d6b290bb/resources/drone-pipeline.png" width="100" />
 
