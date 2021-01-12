@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - develop
+      - moved_get_centroid_latlon
   pull_request:
     branches:
       - master
