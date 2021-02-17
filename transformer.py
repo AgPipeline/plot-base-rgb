@@ -13,6 +13,7 @@ from typing import Optional, Union
 import numpy as np
 from agpypeline import algorithm, entrypoint
 from agpypeline.environment import Environment
+from agpypeline.checkmd import CheckMD
 from osgeo import gdal, ogr, osr
 
 from configuration import ConfigurationRgbBase
@@ -774,7 +775,7 @@ class RgbPlotBase(algorithm.Algorithm):
                         ' author ' + __internal__.get_algorithm_definition_str('ALGORITHM_AUTHOR', 'mystery author') + \
                         ' ' + __internal__.get_algorithm_definition_str('ALGORITHM_AUTHOR_EMAIL', '(no email)')
 
-    def check_continue(self, environment: Environment, check_md: dict, transformer_md: dict, full_md: list) -> tuple:
+    def check_continue(self, environment: Environment, check_md: CheckMD, transformer_md: dict, full_md: list) -> tuple:
         """Checks if conditions are right for continuing processing
         Arguments:
             environment: instance of environment class
@@ -788,7 +789,7 @@ class RgbPlotBase(algorithm.Algorithm):
         # pylint: disable=unused-argument,no-self-use
         # Look for at least one image file in the list provided
         found_image = False
-        for one_file in check_md['list_files']():
+        for one_file in check_md.get_list_files():
             ext = os.path.splitext(one_file)[1]
             if ext in KNOWN_IMAGE_FILE_EXTS:
                 found_image = True
@@ -799,7 +800,7 @@ class RgbPlotBase(algorithm.Algorithm):
 
         return (0) if found_image else (-1000, "Unable to find an image in the list of files")
 
-    def perform_process(self, environment: Environment, check_md: dict, transformer_md: dict, full_md: list) -> dict:
+    def perform_process(self, environment: Environment, check_md: CheckMD, transformer_md: dict, full_md: list) -> dict:
         """Performs the processing of the data
         Arguments:
             environment: instance of environment class
@@ -825,11 +826,11 @@ class RgbPlotBase(algorithm.Algorithm):
         variable_names = __internal__.get_algorithm_variable_list('VARIABLE_NAMES')
 
         csv_file, geostreams_csv_file, betydb_csv_file = __internal__.get_csv_file_names(
-            __internal__.determine_csv_path([environment.args.csv_path, check_md['working_folder']]))
+            __internal__.determine_csv_path([environment.args.csv_path, check_md.working_folder]))
         logging.debug("Calculated default CSV path: %s", csv_file)
         logging.debug("Calculated geostreams CSV path: %s", geostreams_csv_file)
         logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
-        datestamp, localtime = __internal__.get_time_stamps(check_md['timestamp'], environment.args)
+        datestamp, localtime = __internal__.get_time_stamps(check_md.timestamp, environment.args)
 
         write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
         write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
@@ -850,7 +851,7 @@ class RgbPlotBase(algorithm.Algorithm):
         entries_written = 0
         additional_files_list = []
         significant_digits_format = '.' + str(SIGNIFICANT_DIGITS) + 'g'
-        for one_file in __internal__.filter_file_list_by_ext(check_md['list_files'](), KNOWN_IMAGE_FILE_EXTS):
+        for one_file in __internal__.filter_file_list_by_ext(check_md.get_list_files(), KNOWN_IMAGE_FILE_EXTS):
 
             plot_name = None
             try:
