@@ -7,6 +7,7 @@ import logging
 import math
 import numbers
 import os
+import osgeo
 import random
 import time
 from typing import Optional, Union
@@ -296,6 +297,10 @@ class __internal__:
             msg = "Failed to import EPSG %s for image file %s" % (str(epsg), filename)
             logging.error(msg)
             raise RuntimeError(msg)
+        if int(osgeo.__version__[0]) >= 3:
+            # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+            # pylint: disable=no-member
+            ref_sys.SetAxisMappingStrategy(osgeo.osr.OAMS_TRADITIONAL_GIS_ORDER)
 
         # Convert the polygon to lat-lon
         dest_spatial = osr.SpatialReference()
@@ -303,6 +308,10 @@ class __internal__:
             msg = "Failed to import EPSG %s for conversion to lat-lon" % str(LAT_LON_EPSG_CODE)
             logging.error(msg)
             raise RuntimeError(msg)
+        if int(osgeo.__version__[0]) >= 3:
+            # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+            # pylint: disable=no-member
+            dest_spatial.SetAxisMappingStrategy(osgeo.osr.OAMS_TRADITIONAL_GIS_ORDER)
 
         transform = osr.CoordinateTransformation(ref_sys, dest_spatial)
         new_src = poly.Clone()
