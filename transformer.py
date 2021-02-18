@@ -7,18 +7,18 @@ import logging
 import math
 import numbers
 import os
-import osgeo
 import random
 import time
 from typing import Optional, Union
+import osgeo
 import numpy as np
 from agpypeline import algorithm, entrypoint
 from agpypeline.environment import Environment
 from agpypeline.checkmd import CheckMD
 from osgeo import gdal, ogr, osr
 
-from configuration import ConfigurationRgbBase
 import algorithm_rgb
+from configuration import ConfigurationRgbBase
 
 # Known image file extensions
 KNOWN_IMAGE_FILE_EXTS = ['.tif', '.tiff', '.jpg']
