@@ -1,4 +1,4 @@
-[![license](https://img.shields.io/badge/license-BSD%203-green?logo=Open-Source-Initiative)](https://github.com/AgPipeline/plot-base-rgb/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/license-BSD%203-green?logo=Open-Source-Initiative)](https://github.com/AgPipeline/plot-base-rgb/blob/main/LICENSE)
 
 [![Enforcing testing](https://github.com/AgPipeline/plot-base-rgb/workflows/Enforcing%20pylint%20checks/badge.svg)](https://github.com/AgPipeline/plot-base-rgb/actions?query=workflow%3A%22Enforcing+pylint+checks%22)
 
