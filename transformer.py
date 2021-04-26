@@ -405,6 +405,7 @@ class __internal__:
         backoff_secs = None
         for tries in range(0, MAX_CSV_FILE_OPEN_TRIES):
             try:
+                # pylint: disable=consider-using-with
                 csv_file = open(filename, 'a+')
             except Exception as ex:
                 # Ignore an exception here since we handle it below
