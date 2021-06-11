@@ -36,12 +36,12 @@ TRAIT_NAME_ARRAY_VALUE = ['canopy_cover', 'site']
 TRAIT_NAME_MAP = {
     'local_datetime': None,
     'access_level': '2',
-    'species': 'Unknown',
+    'species': '',
     'site': '',
-    'citation_author': '"Unknown"',
-    'citation_year': '0000',
-    'citation_title': 'Unknown',
-    'method': 'Unknown'
+    'citation_author': '',
+    'citation_year': '',
+    'citation_title': '',
+    'method': ''
 }
 
 # Trait names arrays
@@ -724,10 +724,10 @@ class __internal__:
             plot_name: the name of the plot to find the species of
             full_md: the full list of metadata
         Returns:
-            Returns the found species or "Unknown" if the plot was not found
+            Returns the found species or "" (empty string) if the plot was not found
         Notes:
             Returns the first match found. If not found, the return value will be one of the following (in
-            priority order): the case-insensitive plot name match, the command line species argument, "Unknown"
+            priority order): the case-insensitive plot name match, the command line species argument, ""
         """
         possible = None
         optional = None
@@ -753,7 +753,7 @@ class __internal__:
         if possible is not None:
             return possible
 
-        return optional if optional is not None else "Unknown"
+        return optional if optional is not None else ''
 
 
 class RgbPlotBase(algorithm.Algorithm):
