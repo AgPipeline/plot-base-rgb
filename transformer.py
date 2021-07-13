@@ -935,7 +935,6 @@ class RgbPlotBase(algorithm.Algorithm):
                 entries_written += 1
 
             except Exception as ex:
-                logging.exception()
                 logging.error("Error generating %s for %s", __internal__.get_algorithm_name(), str(plot_name))
                 logging.error("Exception: %s", str(ex))
                 continue
