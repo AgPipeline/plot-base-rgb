@@ -45,7 +45,7 @@ TRAIT_NAME_MAP = {
 }
 
 # Trait names arrays
-CSV_TRAIT_NAMES = ['species', 'site', 'timestamp', 'lat', 'lon', 'citation_author', 'citation_year', 'citation_title']
+CSV_TRAIT_NAMES = ['species', 'site', 'timestamp', 'citation_author', 'citation_year', 'citation_title']
 GEO_TRAIT_NAMES = ['site', 'trait', 'lat', 'lon', 'dp_time', 'source', 'value', 'timestamp']
 BETYDB_TRAIT_NAMES = ['local_datetime', 'access_level', 'species', 'site', 'citation_author', 'citation_year', 'citation_title',
                       'method']
@@ -63,6 +63,7 @@ FILE_NAME_BETYDB_CSV = "rgb_plot_betydb.csv"
 
 # The number of significant digits to keep
 SIGNIFICANT_DIGITS = 3
+
 
 class __internal__:
     """Class containing functions for this file only
@@ -258,7 +259,7 @@ class __internal__:
         return None
 
     @staticmethod
-    def get_centroid_latlon(filename: str) -> ogr.Geometry:
+    def get_centroid_latlon(filename: str) -> Optional[ogr.Geometry]:
         """Returns the centroid of the geo-referenced image file as an OGR point
         Arguments:
             filename: the path to the file to get the centroid from
@@ -271,14 +272,14 @@ class __internal__:
         bounds = __internal__.image_get_geobounds(filename)
         if bounds[0] == np.nan:
             msg = "File is not a geo-referenced image file: %s" % filename
-            logging.error(msg)
-            raise RuntimeError(msg)
+            logging.info(msg)
+            return None
 
         epsg = __internal__.get_epsg(filename)
         if epsg is None:
             msg = "EPSG is not found in image file: '%s'" % filename
-            logging.error(msg)
-            raise RuntimeError(msg)
+            logging.info(msg)
+            return None
 
         ring = ogr.Geometry(ogr.wkbLinearRing)
         ring.AddPoint(bounds[2], bounds[1])  # Upper left
@@ -658,7 +659,6 @@ class __internal__:
                 os.path.join(csv_path, FILE_NAME_GEO_CSV),
                 os.path.join(csv_path, FILE_NAME_BETYDB_CSV)]
 
-
     @staticmethod
     def validate_calc_value(calc_value, variable_names: list) -> list:
         """Returns a list of the validated value(s) as compared against type and length of variable names
@@ -808,7 +808,7 @@ class RgbPlotBase(algorithm.Algorithm):
         if not found_image:
             logging.debug("Image not found in list of files. Supported types are: %s", ", ".join(KNOWN_IMAGE_FILE_EXTS))
 
-        return (0) if found_image else (-1000, "Unable to find an image in the list of files")
+        return (0,) if found_image else (-1000, "Unable to find an image in the list of files")
 
     def perform_process(self, environment: Environment, check_md: CheckMD, transformer_md: dict, full_md: list) -> dict:
         """Performs the processing of the data
@@ -842,8 +842,8 @@ class RgbPlotBase(algorithm.Algorithm):
         logging.debug("Calculated BETYdb CSV path: %s", betydb_csv_file)
         datestamp, localtime = __internal__.get_time_stamps(check_md.timestamp, environment.args)
 
-        write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', True)
-        write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', True)
+        write_geostreams_csv = environment.args.geostreams_csv or __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', False)
+        write_betydb_csv = environment.args.betydb_csv or __internal__.get_algorithm_definition_bool('WRITE_BETYDB_CSV', False)
         logging.info("Writing geostreams csv file: %s", "True" if write_geostreams_csv else "False")
         logging.info("Writing BETYdb csv file: %s", "True" if write_betydb_csv else "False")
 
@@ -885,11 +885,16 @@ class RgbPlotBase(algorithm.Algorithm):
                 logging.debug("Verified values are %s", str(values))
 
                 geo_traits['site'] = plot_name
-                geo_traits['lat'] = str(centroid.GetY())
-                geo_traits['lon'] = str(centroid.GetX())
                 geo_traits['dp_time'] = localtime
                 geo_traits['source'] = one_file
                 geo_traits['timestamp'] = datestamp
+
+                if centroid is not None:
+                    geo_traits['lat'] = str(centroid.GetY())
+                    geo_traits['lon'] = str(centroid.GetX())
+                else:
+                    geo_traits['lat'] = ''
+                    geo_traits['lon'] = ''
 
                 # Write the data points geographically and otherwise
                 for idx, trait_name in enumerate(variable_names):
@@ -912,9 +917,13 @@ class RgbPlotBase(algorithm.Algorithm):
 
                 csv_traits['site'] = plot_name
                 csv_traits['timestamp'] = datestamp
-                csv_traits['lat'] = str(centroid.GetY())
-                csv_traits['lon'] = str(centroid.GetX())
                 csv_traits['species'] = __internal__.get_plot_species(plot_name, full_md)
+                if centroid is not None:
+                    csv_traits['lat'] = str(centroid.GetY())
+                    csv_traits['lon'] = str(centroid.GetX())
+                else:
+                    csv_traits['lat'] = ''
+                    csv_traits['lon'] = ''
                 __internal__.write_trait_csv(csv_file, csv_header, csv_fields, csv_traits)
 
                 bety_traits['site'] = plot_name
