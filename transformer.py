@@ -319,7 +319,7 @@ class __internal__:
         if new_src:
             new_src.Transform(transform)
         else:
-            msg = "Failed to transform file polygon to lat-lon" % filename
+            msg = "Failed to transform file polygon to lat-lon %s" % filename
             logging.error(msg)
             raise RuntimeError(msg)
 
@@ -407,7 +407,7 @@ class __internal__:
         for tries in range(0, MAX_CSV_FILE_OPEN_TRIES):
             try:
                 # pylint: disable=consider-using-with
-                csv_file = open(filename, 'a+')
+                csv_file = open(filename, 'a+', encoding='utf-8')
             except Exception as ex:
                 # Ignore an exception here since we handle it below
                 logging.debug("Exception caught while trying to open CSV file: %s", filename)
