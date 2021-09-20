@@ -355,7 +355,6 @@ class __internal__:
         """
         # pylint: disable=global-statement
         global RANDOM_GENERATOR
-        global MAX_FILE_OPEN_SLEEP_SEC
 
         # Simple case
         if prev is None:
@@ -395,9 +394,6 @@ class __internal__:
             Return:
                 Returns True if the file was written to and False otherwise
         """
-        # pylint: disable=global-statement
-        global MAX_CSV_FILE_OPEN_TRIES
-
         if not filename or not data:
             logging.error("Empty parameter passed to write_geo_csv")
             return False
@@ -478,10 +474,6 @@ class __internal__:
             If the default value for a trait is configured, that value is returned. Otherwise
             an empty string is returned.
         """
-        # pylint: disable=global-statement
-        global TRAIT_NAME_ARRAY_VALUE
-        global TRAIT_NAME_MAP
-
         if trait_name in TRAIT_NAME_ARRAY_VALUE:
             return []  # Return an empty list when the name matches
         if trait_name in TRAIT_NAME_MAP:
