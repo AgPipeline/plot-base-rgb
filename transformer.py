@@ -756,7 +756,6 @@ class RgbPlotBase(algorithm.Algorithm):
         Arguments:
             parser: instance of argparse
         """
-        # pylint: disable=no-self-use
         supported_files = [FILE_NAME_CSV + ': basic CSV file with calculated values']
         if __internal__.get_algorithm_definition_bool('WRITE_GEOSTREAMS_CSV', False):
             supported_files.append(FILE_NAME_BETYDB_CSV + ': TERRA REF Geostreams compatible CSV file')
@@ -788,7 +787,7 @@ class RgbPlotBase(algorithm.Algorithm):
             Returns a list containing the return code for continuing or not, and
             an error message if there's an error
         """
-        # pylint: disable=unused-argument,no-self-use
+        # pylint: disable=unused-argument
         # Look for at least one image file in the list provided
         found_image = False
         for one_file in check_md.get_list_files():
@@ -812,7 +811,7 @@ class RgbPlotBase(algorithm.Algorithm):
         Return:
             Returns a dictionary with the results of processing
         """
-        # pylint: disable=unused-argument, no-self-use
+        # pylint: disable=unused-argument
         # The following pylint disables are here because to satisfy them would make the code unreadable
         # pylint: disable=too-many-statements, too-many-locals, too-many-branches
 

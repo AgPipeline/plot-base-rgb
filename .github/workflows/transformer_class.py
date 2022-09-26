@@ -20,7 +20,6 @@ class Transformer():
             parser: instance of argparse
         """
 
-    # pylint: disable=no-self-use
     def get_transformer_params(self, args: argparse.Namespace, metadata: list) -> dict:
         """Returns a parameter list for processing data
         Arguments:
@@ -34,7 +33,6 @@ class Transformer():
         params = {}
         return params
 
-    # pylint: disable=no-self-use
     def retrieve_files(self, transformer_params: dict, metadata: list) -> tuple:
         """Retrieves files as needed to make them available for processing
         Arguments:
